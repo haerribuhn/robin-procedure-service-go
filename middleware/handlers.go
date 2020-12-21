@@ -76,43 +76,6 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(res)
 }
 
-// GetUser will return a single user by its id
-func GetUser(w http.ResponseWriter, r *http.Request) {
-	// get the userid from the request params, key is "id"
-	params := mux.Vars(r)
-
-	// convert the id type from string to int
-	id, err := strconv.Atoi(params["id"])
-
-	if err != nil {
-		log.Fatalf("Unable to convert the string into int.  %v", err)
-	}
-
-	// call the getUser function with user id to retrieve a single user
-	user, err := getUser(int64(id))
-
-	if err != nil {
-		log.Fatalf("Unable to get user. %v", err)
-	}
-
-	// send the response
-	json.NewEncoder(w).Encode(user)
-}
-
-// GetAllUser will return all the users
-func GetAllUser(w http.ResponseWriter, r *http.Request) {
-
-	// get all the users in the db
-	users, err := getAllUsers()
-
-	if err != nil {
-		log.Fatalf("Unable to get all user. %v", err)
-	}
-
-	// send all the users as response
-	json.NewEncoder(w).Encode(users)
-}
-
 // UpdateUser update user's detail in the postgres db
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
 
@@ -212,83 +175,6 @@ func insertUser(user models.User) int64 {
 	return id
 }
 
-// get one user from the DB by its userid
-func getUser(id int64) (models.User, error) {
-	// create the postgres db connection
-	db := createConnection()
-
-	// close the db connection
-	defer db.Close()
-
-	// create a user of models.User type
-	var user models.User
-
-	// create the select sql query
-	sqlStatement := `SELECT * FROM users WHERE userid=$1`
-
-	// execute the sql statement
-	row := db.QueryRow(sqlStatement, id)
-
-	// unmarshal the row object to user
-	err := row.Scan(&user.ID, &user.Name, &user.Age, &user.Location)
-
-	switch err {
-	case sql.ErrNoRows:
-		fmt.Println("No rows were returned!")
-		return user, nil
-	case nil:
-		return user, nil
-	default:
-		log.Fatalf("Unable to scan the row. %v", err)
-	}
-
-	// return empty user on error
-	return user, err
-}
-
-// get one user from the DB by its userid
-func getAllUsers() ([]models.User, error) {
-	// create the postgres db connection
-	db := createConnection()
-
-	// close the db connection
-	defer db.Close()
-
-	var users []models.User
-
-	// create the select sql query
-	sqlStatement := `SELECT * FROM users`
-
-	// execute the sql statement
-	rows, err := db.Query(sqlStatement)
-
-	if err != nil {
-		log.Fatalf("Unable to execute the query. %v", err)
-	}
-
-	// close the statement
-	defer rows.Close()
-
-	// iterate over the rows
-	for rows.Next() {
-		var user models.User
-
-		// unmarshal the row object to user
-		err = rows.Scan(&user.ID, &user.Name, &user.Age, &user.Location)
-
-		if err != nil {
-			log.Fatalf("Unable to scan the row. %v", err)
-		}
-
-		// append the user in the users slice
-		users = append(users, user)
-
-	}
-
-	// return empty user on error
-	return users, err
-}
-
 // update user in the DB
 func updateUser(id int64, user models.User) int64 {
 
@@ -364,6 +250,24 @@ func GetAllProcedures(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(procedures)
 }
 
+func GetProcedure(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+
+	if err != nil {
+		log.Fatalf("Unable to convert the string into int.  %v", err)
+	}
+
+	procedure, err := getProcedure(int64(id))
+
+	if err != nil {
+		log.Fatalf("Unable to get procedure. %v", err)
+	}
+
+	// send the response
+	json.NewEncoder(w).Encode(procedure)
+}
+
 func getAllProcedures() ([]models.Procedure, error) {
 	// create the postgres db connection
 	db := createConnection()
@@ -402,4 +306,37 @@ func getAllProcedures() ([]models.Procedure, error) {
 	}
 
 	return procedures, err
+}
+
+func getProcedure(id int64) (models.Procedure, error) {
+	// create the postgres db connection
+	db := createConnection()
+
+	// close the db connection
+	defer db.Close()
+
+	// create a procedure of models.User type
+	var procedure models.Procedure
+
+	// create the select sql query
+	sqlStatement := `SELECT * FROM procedure WHERE id=$1`
+
+	// execute the sql statement
+	row := db.QueryRow(sqlStatement, id)
+
+	// unmarshal the row object to procedure
+	err := row.Scan(&procedure.ID, &procedure.Name, &procedure.Commodity, &procedure.ConsultantID)
+
+	switch err {
+	case sql.ErrNoRows:
+		fmt.Println("No rows were returned!")
+		return procedure, nil
+	case nil:
+		return procedure, nil
+	default:
+		log.Fatalf("Unable to scan the row. %v", err)
+	}
+
+	// return empty procedure on error
+	return procedure, err
 }
